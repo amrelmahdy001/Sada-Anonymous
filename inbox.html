@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Inbox — Sada</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #07090f;
+      --surface: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.09);
+      --accent: #818cf8;
+      --accent2: #c084fc;
+      --text: #f1f5f9;
+      --muted: #64748b;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      padding: 24px 20px 60px;
+      background-image:
+        radial-gradient(ellipse 70% 40% at 50% 0%, rgba(129,140,248,0.08) 0%, transparent 100%),
+        linear-gradient(rgba(255,255,255,0.016) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.016) 1px, transparent 1px);
+      background-size: 100% 100%, 40px 40px, 40px 40px;
+    }
+
+    /* ── Loader ── */
+    #loader {
+      position: fixed; inset: 0; background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100; transition: opacity 0.4s;
+    }
+    .spinner {
+      width: 28px; height: 28px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Header ── */
+    header {
+      max-width: 640px; margin: 0 auto 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .brand {
+      font-family: 'Instrument Serif', serif; font-size: 24px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+
+    .live-badge {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: #22c55e;
+      background: rgba(34,197,94,0.08);
+      border: 1px solid rgba(34,197,94,0.2);
+      border-radius: 100px; padding: 4px 12px;
+    }
+    .dot {
+      width: 6px; height: 6px; background: #22c55e;
+      border-radius: 50%; animation: pulse 2s ease infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+    .btn-nav {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 8px 14px;
+      color: var(--text); font-size: 13px;
+      font-family: 'Outfit', sans-serif;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-nav:hover { border-color: rgba(255,255,255,0.2); }
+
+    /* ── Stats bar ── */
+    .stats-bar {
+      max-width: 640px; margin: 0 auto 18px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .msg-count { font-size: 14px; color: var(--muted); }
+    .msg-count strong { color: var(--text); }
+
+    /* ── Messages container ── */
+    .messages {
+      max-width: 640px; margin: 0 auto;
+      display: flex; flex-direction: column; gap: 10px;
+    }
+
+    /* ── Message Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px; padding: 20px 20px 16px;
+      animation: fadeIn 0.3s ease both;
+      transition: border-color 0.2s, opacity 0.2s, transform 0.2s;
+    }
+    .card:hover { border-color: rgba(255,255,255,0.14); }
+    .card.removing { opacity: 0; transform: scale(0.97); }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg-content {
+      font-size: 15px; line-height: 1.65;
+      color: var(--text); word-break: break-word;
+    }
+
+    .msg-footer {
+      display: flex; align-items: center;
+      justify-content: space-between; margin-top: 14px;
+    }
+    .msg-time { font-size: 12px; color: var(--muted); }
+
+    .btn-delete {
+      background: none; border: none;
+      color: var(--muted); cursor: pointer;
+      font-size: 15px; padding: 5px 7px;
+      border-radius: 8px; line-height: 1;
+      transition: all 0.18s;
+    }
+    .btn-delete:hover {
+      color: #ef4444;
+      background: rgba(239,68,68,0.1);
+    }
+
+    /* ── Empty state ── */
+    .empty {
+      text-align: center; padding: 70px 20px; color: var(--muted);
+    }
+    .empty-icon { font-size: 50px; margin-bottom: 16px; opacity: 0.45; }
+    .empty h3 {
+      font-family: 'Instrument Serif', serif;
+      font-size: 22px; color: var(--text);
+      font-weight: normal; margin-bottom: 8px;
+    }
+    .empty p { font-size: 14px; line-height: 1.6; }
+    .empty .copy-hint {
+      display: inline-block; margin-top: 16px;
+      padding: 10px 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px; font-size: 13px;
+      color: var(--accent); cursor: pointer;
+      transition: all 0.2s;
+    }
+    .empty .copy-hint:hover { border-color: rgba(129,140,248,0.3); }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <div id="loader"><div class="spinner"></div></div>
+
+  <header>
+    <div class="brand">Sada ✦</div>
+    <div class="header-right">
+      <div class="live-badge"><div class="dot"></div>Live</div>
+      <button class="btn-nav" onclick="window.location.href='index.html'">← Back</button>
+    </div>
+  </header>
+
+  <div class="stats-bar">
+    <div class="msg-count"><strong id="count">0</strong> messages</div>
+  </div>
+
+  <div class="messages" id="messages">
+    <!-- Populated by JS -->
+  </div>
+
+  <script type="module">
+    import { initializeApp }  from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+    import { getDatabase, ref, onValue, remove } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
+    import { getAuth, onAuthStateChanged }        from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAmNiFja2s0KoU3uc0YK46kvHeJ1kSGpiI",
+      authDomain: "sada-msg.firebaseapp.com",
+      databaseURL: "https://sada-msg-default-rtdb.europe-west1.firebasedatabase.app/",
+      projectId: "sada-msg",
+      storageBucket: "sada-msg.firebasestorage.app",
+      messagingSenderId: "662700281535",
+      appId: "1:662700281535:web:829a037e6411edfb8cc00a"
+    };
+
+    const app  = initializeApp(firebaseConfig);
+    const db   = getDatabase(app);
+    const auth = getAuth(app);
+
+    function hideLoader() {
+      const el = document.getElementById('loader');
+      el.style.opacity = '0';
+      setTimeout(() => el.style.display = 'none', 400);
+    }
+
+    // ── Auth guard ───────────────────────────────────────────
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        window.location.href = 'index.html';
+        return;
+      }
+      hideLoader();
+      loadMessages(user.uid);
+    });
+
+    // ── Load & render messages ───────────────────────────────
+    function loadMessages(uid) {
+      const container = document.getElementById('messages');
+      const countEl   = document.getElementById('count');
+
+      onValue(ref(db, 'messages/' + uid), (snapshot) => {
+        container.innerHTML = '';
+        const data = snapshot.val();
+
+        if (!data) {
+          countEl.textContent = '0';
+          container.innerHTML = `
+            <div class="empty">
+              <div class="empty-icon">📭</div>
+              <h3>Nothing yet</h3>
+              <p>Share your link and wait for the messages to roll in.</p>
+              <span class="copy-hint" onclick="copyMyLink('${uid}')">📋 Copy your link</span>
+            </div>`;
+          return;
+        }
+
+        const entries = Object.entries(data)
+          .sort((a, b) => b[1].createdAt - a[1].createdAt);
+
+        countEl.textContent = entries.length;
+
+        entries.forEach(([key, msg], i) => {
+          const card = document.createElement('div');
+          card.className = 'card';
+          card.style.animationDelay = Math.min(i * 0.04, 0.3) + 's';
+
+          const time = new Date(msg.createdAt).toLocaleString(undefined, {
+            month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+          });
+
+          card.innerHTML = `
+            <div class="msg-content">${escapeHtml(msg.content)}</div>
+            <div class="msg-footer">
+              <div class="msg-time">✦ ${time}</div>
+              <button class="btn-delete" title="Delete message">🗑</button>
+            </div>`;
+
+          card.querySelector('.btn-delete').addEventListener('click', () => {
+            card.classList.add('removing');
+            setTimeout(() => remove(ref(db, 'messages/' + uid + '/' + key)), 200);
+          });
+
+          container.appendChild(card);
+        });
+      });
+    }
+
+    // ── Helpers ──────────────────────────────────────────────
+    window.copyMyLink = (uid) => {
+      const link = window.location.origin +
+        window.location.pathname.replace('inbox.html', 'index.html') + '?uid=' + uid;
+      navigator.clipboard.writeText(link).then(() => {
+        const el = document.querySelector('.copy-hint');
+        if (el) { el.textContent = '✅ Copied!'; setTimeout(() => el.textContent = '📋 Copy your link', 2000); }
+      });
+    };
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+  </script>
+</body>
+</html>
