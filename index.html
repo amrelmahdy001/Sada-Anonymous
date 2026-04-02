@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sada — Anonymous Messages</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #07090f;
+      --surface: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.09);
+      --accent: #818cf8;
+      --accent2: #c084fc;
+      --text: #f1f5f9;
+      --muted: #64748b;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background-image:
+        radial-gradient(ellipse 70% 50% at 50% 0%, rgba(129,140,248,0.09) 0%, transparent 100%),
+        linear-gradient(rgba(255,255,255,0.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.018) 1px, transparent 1px);
+      background-size: 100% 100%, 40px 40px, 40px 40px;
+    }
+
+    /* ── Loader ── */
+    #loader {
+      position: fixed; inset: 0; background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100; transition: opacity 0.4s;
+    }
+    .spinner {
+      width: 28px; height: 28px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Views ── */
+    .view {
+      width: 100%; max-width: 420px;
+      animation: fadeUp 0.45s ease both;
+    }
+    .view.hidden { display: none; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 36px 32px;
+      backdrop-filter: blur(20px);
+    }
+
+    /* ── Brand ── */
+    .brand {
+      font-family: 'Instrument Serif', serif;
+      font-size: 28px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .tagline {
+      font-size: 12px; color: var(--muted);
+      letter-spacing: 0.08em; text-transform: uppercase; margin-top: 2px;
+    }
+
+    h2 {
+      font-family: 'Instrument Serif', serif;
+      font-size: 23px; font-weight: normal; margin-bottom: 6px;
+    }
+    .subtitle {
+      font-size: 14px; color: var(--muted);
+      line-height: 1.65; margin-bottom: 22px;
+    }
+
+    /* ── Textarea ── */
+    textarea {
+      width: 100%;
+      background: rgba(255,255,255,0.035);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px; color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px; line-height: 1.6;
+      resize: none; height: 130px; outline: none;
+      transition: border-color 0.2s;
+    }
+    textarea:focus { border-color: rgba(129,140,248,0.45); }
+    textarea::placeholder { color: var(--muted); }
+
+    .char-count {
+      text-align: right; font-size: 12px;
+      color: var(--muted); margin-top: 6px; margin-bottom: 16px;
+    }
+    .char-count.near { color: #f59e0b; }
+    .char-count.full { color: #ef4444; }
+
+    /* ── Buttons ── */
+    .btn {
+      width: 100%; padding: 14px; border: none; border-radius: 14px;
+      font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      box-shadow: 0 0 22px rgba(99,102,241,0.22);
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(99,102,241,0.38); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .btn-ghost {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .btn-ghost:hover { border-color: rgba(255,255,255,0.2); }
+
+    /* ── Link box ── */
+    .link-box { display: flex; gap: 8px; margin-bottom: 16px; }
+    .link-input {
+      flex: 1;
+      background: rgba(255,255,255,0.035);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: var(--muted); font-size: 13px; outline: none;
+      font-family: 'Outfit', sans-serif;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      min-width: 0;
+    }
+    .btn-copy {
+      flex-shrink: 0;
+      padding: 0 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text); font-size: 13px; font-weight: 500;
+      font-family: 'Outfit', sans-serif;
+      cursor: pointer; transition: all 0.2s; white-space: nowrap;
+    }
+    .btn-copy:hover { border-color: rgba(255,255,255,0.22); }
+    .btn-copy.copied { color: #22c55e; border-color: rgba(34,197,94,0.3); }
+
+    /* ── Divider ── */
+    hr { border: none; border-top: 1px solid var(--border); margin: 22px 0; }
+
+    /* ── Success state ── */
+    .send-success { text-align: center; padding: 16px 0; }
+    .success-icon {
+      font-size: 48px; margin-bottom: 12px;
+      animation: pop 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    @keyframes pop {
+      from { transform: scale(0); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+
+    /* ── Features list ── */
+    .features { display: flex; flex-direction: column; gap: 11px; margin: 22px 0; }
+    .feature { display: flex; align-items: center; gap: 12px; font-size: 14px; color: #94a3b8; }
+    .feature-icon {
+      width: 36px; height: 36px; flex-shrink: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; font-size: 17px;
+    }
+
+    /* ── Google button ── */
+    .btn-google {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%; padding: 13px;
+      background: white; color: #1e293b;
+      border: none; border-radius: 14px;
+      font-family: 'Outfit', sans-serif; font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .btn-google:hover { background: #f8fafc; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+
+    /* ── Dashboard ── */
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(129,140,248,0.1);
+      border: 1px solid rgba(129,140,248,0.2);
+      border-radius: 100px; padding: 4px 12px;
+      font-size: 12px; color: var(--accent); margin-bottom: 18px;
+    }
+    .dot {
+      width: 6px; height: 6px; background: #22c55e;
+      border-radius: 50%; animation: pulse 2s ease infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+    .avatar {
+      width: 48px; height: 48px; border-radius: 50%;
+      border: 2px solid var(--border); margin-bottom: 10px;
+      display: block;
+    }
+    .user-name { font-size: 18px; font-weight: 600; }
+    .user-email { font-size: 13px; color: var(--muted); margin-bottom: 22px; margin-top: 2px; }
+
+    .inbox-wrap { position: relative; margin-bottom: 10px; }
+    .badge {
+      position: absolute; top: -8px; right: -8px;
+      background: #ef4444; color: white;
+      font-size: 11px; font-weight: 700;
+      min-width: 20px; height: 20px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 6px; border: 2px solid var(--bg);
+    }
+
+    /* ── Footer note ── */
+    .foot-note {
+      text-align: center; margin-top: 16px;
+      font-size: 13px; color: var(--muted);
+    }
+    .foot-note a { color: var(--accent); text-decoration: none; }
+    .foot-note a:hover { text-decoration: underline; }
+
+    .hidden { display: none !important; }
+    .mt-8  { margin-top: 8px; }
+    .mt-12 { margin-top: 12px; }
+    .mt-16 { margin-top: 16px; }
+    .mt-20 { margin-top: 20px; }
+    .mb-16 { margin-bottom: 16px; }
+    .text-center { text-align: center; }
+  </style>
+</head>
+<body>
+
+  <!-- Loader -->
+  <div id="loader"><div class="spinner"></div></div>
+
+  <!-- ════ VIEW: Send (visiting someone's page) ════ -->
+  <div id="view-send" class="view hidden">
+    <div class="card">
+      <div class="text-center mb-16">
+        <div class="brand">Sada ✦</div>
+        <div class="tagline">Anonymous Messages</div>
+      </div>
+
+      <!-- Send form -->
+      <div id="send-form">
+        <h2>Send anonymously</h2>
+        <p class="subtitle">They won't know it's you. Write freely.</p>
+        <textarea id="message" maxlength="300" placeholder="Your anonymous message..."></textarea>
+        <div class="char-count" id="charCount">0 / 300</div>
+        <button class="btn btn-primary" id="sendBtn" onclick="sendMessage()">
+          <span>✦</span> Send Message
+        </button>
+      </div>
+
+      <!-- Success state -->
+      <div id="send-success" class="send-success hidden">
+        <div class="success-icon">✅</div>
+        <h2>Sent!</h2>
+        <p class="subtitle mt-8">Delivered anonymously. They'll never know it was you.</p>
+        <button class="btn btn-ghost mt-12" onclick="resetSend()">Send another ↩</button>
+      </div>
+    </div>
+
+    <p class="foot-note">
+      Want your own Sada link? <a href="index.html">Get yours →</a>
+    </p>
+  </div>
+
+  <!-- ════ VIEW: Landing (not logged in) ════ -->
+  <div id="view-landing" class="view hidden">
+    <div class="card">
+      <div class="brand">Sada ✦</div>
+      <p class="subtitle mt-8">Receive honest, anonymous messages from anyone. No filters, no judgment.</p>
+
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon">🔒</div>
+          <span>Senders are 100% anonymous</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">⚡</div>
+          <span>Real-time inbox — messages appear instantly</span>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">🔗</div>
+          <span>One link, share it anywhere</span>
+        </div>
+      </div>
+
+      <hr>
+
+      <button class="btn-google" onclick="login()">
+        <svg width="18" height="18" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        Continue with Google
+      </button>
+    </div>
+  </div>
+
+  <!-- ════ VIEW: Dashboard (logged in) ════ -->
+  <div id="view-dashboard" class="view hidden">
+    <div class="card">
+      <div class="pill"><div class="dot"></div> Active</div>
+
+      <img id="userAvatar" class="avatar" src="" alt="">
+      <div class="user-name" id="userName"></div>
+      <div class="user-email" id="userEmail"></div>
+
+      <p style="font-size:13px; color:var(--muted); margin-bottom:10px;">Your anonymous link — share it:</p>
+      <div class="link-box">
+        <input class="link-input" id="userLink" readonly />
+        <button class="btn-copy" id="copyBtn" onclick="copyLink()">Copy</button>
+      </div>
+
+      <hr>
+
+      <div class="inbox-wrap">
+        <button class="btn btn-primary" onclick="window.location.href='inbox.html'">
+          📩 Go to Inbox
+        </button>
+        <div class="badge hidden" id="msgBadge">0</div>
+      </div>
+
+      <button class="btn btn-ghost mt-8" onclick="logout()">Sign out</button>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp }    from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+    import { getDatabase, ref, push, get } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-database.js";
+    import { getAuth, GoogleAuthProvider, signInWithRedirect,
+             onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
+import { setPersistence, browserLocalPersistence }
+from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
+    const firebaseConfig = {
+      apiKey: "AIzaSyAmNiFja2s0KoU3uc0YK46kvHeJ1kSGpiI",
+      authDomain: "sada-msg.firebaseapp.com",
+      databaseURL: "https://sada-msg-default-rtdb.europe-west1.firebasedatabase.app/",
+      projectId: "sada-msg",
+      storageBucket: "sada-msg.firebasestorage.app",
+      messagingSenderId: "662700281535",
+      appId: "1:662700281535:web:829a037e6411edfb8cc00a"
+    };
+
+    const app  = initializeApp(firebaseConfig);
+    const db   = getDatabase(app);
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+
+    // ── Helpers ─────────────────────────────────────────────
+    const getUid = () => new URLSearchParams(window.location.search).get('uid');
+
+    function showView(id) {
+      document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+      document.getElementById('view-' + id).classList.remove('hidden');
+    }
+
+    function hideLoader() {
+      const el = document.getElementById('loader');
+      el.style.opacity = '0';
+      setTimeout(() => el.style.display = 'none', 400);
+    }
+
+    // ── Auth State ───────────────────────────────────────────
+    onAuthStateChanged(auth, async (user) => {
+  setTimeout(() => hideLoader(), 100);
+      const uid = getUid();
+
+      if (uid) {
+        showView('send');
+        return;
+      }
+
+      if (user) {
+        await setupDashboard(user);
+        showView('dashboard');
+      } else {
+        showView('landing');
+      }
+    });
+
+    async function setupDashboard(user) {
+      document.getElementById('userName').textContent  = user.displayName || 'Anonymous';
+      document.getElementById('userEmail').textContent = user.email;
+      const av = document.getElementById('userAvatar');
+      if (user.photoURL) av.src = user.photoURL; else av.style.display = 'none';
+      document.getElementById('userLink').value =
+        window.location.origin + window.location.pathname + '?uid=' + user.uid;
+
+      // Count messages for badge
+      const snap = await get(ref(db, 'messages/' + user.uid));
+      if (snap.exists()) {
+        const n = Object.keys(snap.val()).length;
+        const badge = document.getElementById('msgBadge');
+        badge.textContent = n;
+        badge.classList.remove('hidden');
+      }
+    }
+
+    // ── Actions ──────────────────────────────────────────────
+    window.login = async () => {
+  try {
+    await setPersistence(auth, browserLocalPersistence);
+    await signInWithRedirect(auth, provider);
+  } catch (err) {
+    console.error("LOGIN ERROR:", err);
+  }
+};
+    window.logout = () => signOut(auth).then(() => showView('landing'));
+
+    window.copyLink = () => {
+      navigator.clipboard.writeText(document.getElementById('userLink').value).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2200);
+      });
+    };
+
+    // ── Send Message ─────────────────────────────────────────
+    const textarea = document.getElementById('message');
+    const charEl   = document.getElementById('charCount');
+
+    textarea?.addEventListener('input', () => {
+      const len = textarea.value.length;
+      charEl.textContent = len + ' / 300';
+      charEl.className = 'char-count' + (len >= 300 ? ' full' : len >= 250 ? ' near' : '');
+    });
+
+    window.sendMessage = async () => {
+      const content = textarea.value.trim();
+      const uid = getUid();
+
+      if (!content) { textarea.focus(); return; }
+      if (!uid)     { alert('Invalid link — no user ID found.'); return; }
+
+      const btn = document.getElementById('sendBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;margin:0;border-width:2px;"></div>';
+
+      try {
+        await push(ref(db, 'messages/' + uid), {
+          content,
+          createdAt: Date.now()
+        });
+        document.getElementById('send-form').classList.add('hidden');
+        document.getElementById('send-success').classList.remove('hidden');
+      } catch (e) {
+        alert('Could not send. Try again.');
+        btn.disabled = false;
+        btn.innerHTML = '<span>✦</span> Send Message';
+      }
+    };
+
+    window.resetSend = () => {
+      document.getElementById('send-form').classList.remove('hidden');
+      document.getElementById('send-success').classList.add('hidden');
+      textarea.value = '';
+      charEl.textContent = '0 / 300';
+      charEl.className = 'char-count';
+      const btn = document.getElementById('sendBtn');
+      btn.disabled = false;
+      btn.innerHTML = '<span>✦</span> Send Message';
+    };
+  </script>
+</body>
+</html>
